@@ -1,0 +1,6 @@
+scrapy>=2.11.0
+scrapy-playwright>=0.0.33
+scrapy-redis>=0.7.3
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+python-dotenv>=1.0.0

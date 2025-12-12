@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  heritage_postgres:
+    image: docker.io/library/postgres:15
+    container_name: heritage_postgres
+    environment:
+      POSTGRES_USER: heritage_user
+      POSTGRES_PASSWORD: heritage_password
+      POSTGRES_DB: heritage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  heritage_redis:
+    image: docker.io/library/redis:7
+    container_name: heritage_redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  heritage_chroma:
+    image: docker.io/chromadb/chroma:latest
+    container_name: heritage_chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:

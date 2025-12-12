@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ site.name }} - 世界遗产数据系统{% endblock %}
+
+{% block content %}
+<!-- 返回按钮 -->
+<div class="mb-4">
+    <a href="{% url 'sites:list' %}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left"></i> 返回列表
+    </a>
+</div>
+
+<!-- 标题卡片 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h3 class="mb-0">
+            <i class="bi bi-building-fill"></i> {{ site.name }}
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                    <strong>国家</strong>
+                </div>
+                <p class="mb-0">{{ site.country }}</p>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-tag-fill text-primary"></i>
+                    <strong>类型</strong>
+                </div>
+                <p class="mb-0">
+                    {% if site.category == 'Cultural' %}
+                    <span class="badge badge-cultural">
+                        <i class="bi bi-building"></i> 文化遗产
+                    </span>
+                    {% elif site.category == 'Natural' %}
+                    <span class="badge badge-natural">
+                        <i class="bi bi-tree-fill"></i> 自然遗产
+                    </span>
+                    {% else %}
+                    <span class="badge badge-mixed">
+                        <i class="bi bi-stars"></i> 混合遗产
+                    </span>
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-calendar3 text-primary"></i>
+                    <strong>录入时间</strong>
+                </div>
+                <p class="mb-0">{{ site.created_at|date:"Y-m-d H:i" }}</p>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-clock-history text-primary"></i>
+                    <strong>更新时间</strong>
+                </div>
+                <p class="mb-0">{{ site.updated_at|date:"Y-m-d H:i" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% block extra_css %}
+<style>
+    .article-content {
+        font-size: 1.05rem;
+        color: #374151;
+        line-height: 1.8;
+    }
+
+    .article-content p {
+        margin-bottom: 1.5em;
+        text-align: justify;
+    }
+
+    .article-content p:last-child {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+<!-- 中文描述 -->
+{% if site.description_zh %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-translate"></i> 中文描述
+    </div>
+    <div class="card-body">
+        <div class="article-content">
+            {{ site.description_zh|linebreaks }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 英文描述 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-file-text-fill"></i> English Description
+    </div>
+    <div class="card-body">
+        <div class="article-content">
+            {{ site.description_en|linebreaks }}
+        </div>
+    </div>
+</div>
+
+<!-- 详细内容 - 始终显示 -->
+{% if site.content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-journal-text"></i> 详细内容 (Content)
+    </div>
+    <div class="card-body">
+        <div class="article-content">
+            {{ site.content|linebreaks }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 数据来源 -->
+{% if site.metadata.url %}
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-link-45deg"></i> 数据来源
+    </div>
+    <div class="card-body">
+        <a href="{{ site.metadata.url }}" target="_blank" class="btn btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right"></i> 访问原始页面
+        </a>
+        <p class="text-muted mt-2 mb-0">
+            <small>{{ site.metadata.url }}</small>
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
