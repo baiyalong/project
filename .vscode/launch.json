@@ -1,0 +1,87 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django Web应用 (heritage_display)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/heritage_display/manage.py",
+      "args": [
+        "runserver",
+        "0.0.0.0:8001"
+      ],
+      "django": true,
+      "jinja": true,
+      "justMyCode": true,
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/heritage_display",
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "DJANGO_SETTINGS_MODULE": "heritage_display.settings"
+      }
+    },
+    {
+      "name": "Scrapy爬虫 (heritage_pipeline)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "scrapy",
+      "args": [
+        "crawl",
+        "heritage_spider"
+      ],
+      "jinja": true,
+      "justMyCode": true,
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/heritage_pipeline"
+    },
+    {
+      "name": "Django Shell",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/heritage_display/manage.py",
+      "args": [
+        "shell"
+      ],
+      "django": true,
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/heritage_display",
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "DJANGO_SETTINGS_MODULE": "heritage_display.settings"
+      }
+    },
+    {
+      "name": "Django数据库迁移",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/heritage_display/manage.py",
+      "args": [
+        "migrate"
+      ],
+      "django": true,
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/heritage_display",
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "DJANGO_SETTINGS_MODULE": "heritage_display.settings"
+      }
+    },
+    {
+      "name": "当前文件调试",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "完整系统 (Web + 爬虫)",
+      "configurations": [
+        "Django Web应用 (heritage_display)",
+        "Scrapy爬虫 (heritage_pipeline)"
+      ]
+    }
+  ]
+}
