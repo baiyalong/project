@@ -1,8 +1,6 @@
 """
 Crawler control views for triggering and monitoring crawl tasks
 """
-import subprocess
-import os
 import logging
 import json
 import redis
@@ -45,7 +43,7 @@ def start_full_crawl(request):
         payload = {
             'task_id': task.id,
             'task_type': 'full',
-            'url': 'https://whc.unesco.org/en/list/' # Start URL for full crawl
+            'url': getattr(settings, 'CRAWLER_START_URL', 'https://whc.unesco.org/en/list/') # Start URL for full crawl
         }
         
         # Push to Redis queue (heritage_spider:start_urls)
@@ -146,7 +144,7 @@ def stop_all_crawls(request):
         # 2. Mark running tasks as stopped in DB
         CrawlTask.objects.filter(status__in=['pending', 'running']).update(
             status='stopped',
-            completed_at=None, # or now?
+            completed_at=None,
             error_message='Stopped by user'
         )
         
@@ -156,3 +154,44 @@ def stop_all_crawls(request):
     except Exception as e:
         logger.error(f"Error stopping crawls: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+@require_http_methods(["POST"])
+def batch_crawl_status(request):
+    """
+    Query status for multiple tasks at once.
+    Expects a JSON body with keys: {'task_ids': [1, 2, 3]}
+    Returns a dict: { '1': { 'status': '...', ... }, '2': { ... } }
+    """
+    try:
+        data = json.loads(request.body)
+        task_ids = data.get('task_ids', [])
+        
+        if not task_ids:
+            return JsonResponse({}, status=200)
+            
+        # Limit batch size to prevent abuse
+        if len(task_ids) > 50:
+            return JsonResponse({'error': 'Batch size limit exceeded (max 50)'}, status=400)
+            
+        tasks = CrawlTask.objects.filter(pk__in=task_ids)
+        result = {}
+        
+        for task in tasks:
+            result[str(task.id)] = {
+                'task_id': task.id,
+                'status': task.status,
+                'total_items': task.total_items,
+                'processed_items': task.processed_items,
+                'current_item': task.current_item,
+                'progress_percentage': task.progress_percentage,
+                # Include target_url or other meta if needed
+            }
+            
+        return JsonResponse(result, safe=False)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in batch_crawl_status: {e}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)

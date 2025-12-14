@@ -1,9 +1,9 @@
 import scrapy
 from scrapy_redis.spiders import RedisSpider
-import re
-from heritage_pipeline.items import HeritageItem
 import json
+from heritage_pipeline.items import HeritageItem
 import html2text
+
 
 class HeritageSpider(RedisSpider):
     name = "heritage_spider"
@@ -56,7 +56,13 @@ class HeritageSpider(RedisSpider):
         total_count = len(sites)
         task_id = response.meta.get('task_id')
         self.logger.info(f"Found {total_count} sites in the list for task {task_id}")
-        self.update_total_items(total_count, task_id)
+        self.logger.info(f"Found {total_count} sites in the list for task {task_id}")
+        # Emit progress update item
+        yield {
+            'type': 'progress_update',
+            'task_id': task_id,
+            'total_items': total_count
+        }
 
         # Iterate over all list items in the main list containers
         for li in sites:
@@ -80,29 +86,7 @@ class HeritageSpider(RedisSpider):
             
             yield response.follow(url, callback=self.parse_detail, cb_kwargs={'category': category}, meta=meta)
 
-    def update_total_items(self, count, task_id):
-        """Update total_items in database for progress calculation"""
-        if not task_id:
-            return
-            
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
-        from heritage_pipeline.models import CrawlTaskModel
-        
-        db_uri = self.settings.get('POSTGRES_URI', 'postgresql://heritage_user:heritage_password@localhost:5432/heritage')
-        try:
-            engine = create_engine(db_uri)
-            Session = sessionmaker(bind=engine)
-            session = Session()
-            task = session.query(CrawlTaskModel).get(task_id)
-            if task:
-                task.total_items = count
-                session.commit()
-                self.logger.info(f"Updated total_items to {count} for task {task_id}")
-            session.close()
-            engine.dispose()
-        except Exception as e:
-            self.logger.error(f"Failed to update total_items: {e}")
+
 
     def parse_detail(self, response, category):
         item = HeritageItem()
@@ -156,8 +140,8 @@ class HeritageSpider(RedisSpider):
         item['description_zh'] = h.handle(desc_zh_html_str).strip() if desc_zh_html_str else ""
         
         # 5. Content (Detailed content from the page)
-        # Extract HTML content and convert to Markdown using html2text
-        content_html = response.xpath('//*[@id="content"]/div/div[3]/div/div[1]/div[3]').getall()
+        # Use more robust selector (Grab all rich-text divs if they exist, or fallback to description)
+        content_html = response.xpath('//div[contains(@class, "rich-text")]').getall()
         content_html_str = "".join(content_html).strip()
         item['content'] = h.handle(content_html_str).strip() if content_html_str else ""
         

@@ -8,7 +8,7 @@ This package organizes views into focused modules:
 """
 
 # Import all views for backward compatibility
-from .list_views import site_list
+from .list_views import site_list, get_updated_sites
 from .detail_views import site_detail
 from .crawler_views import (
     start_full_crawl,
@@ -16,14 +16,17 @@ from .crawler_views import (
     crawl_status,
     get_active_full_crawl,
     stop_all_crawls,
+    batch_crawl_status,
 )
 
 __all__ = [
     'site_list',
+    'get_updated_sites',
     'site_detail',
     'start_full_crawl',
     'start_single_crawl',
     'crawl_status',
     'get_active_full_crawl',
     'stop_all_crawls',
+    'batch_crawl_status',
 ]

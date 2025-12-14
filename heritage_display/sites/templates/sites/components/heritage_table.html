@@ -13,7 +13,7 @@
         </thead>
         <tbody>
             {% for site in page_obj %}
-            <tr>
+            <tr data-site-id="{{ site.pk }}" data-site-name="{{ site.name }}">
                 <td>
                     <span class="id-badge">#{{ site.id }}</span>
                 </td>
@@ -56,7 +56,8 @@
                     </div>
 
                     {# Progress Display (initially hidden) #}
-                    <div class="item-progress mt-1" data-site-name="{{ site.name }}" style="display: none;">
+                    <div class="item-progress mt-1" data-site-name="{{ site.name }}" data-site-id="{{ site.pk }}"
+                        style="display: none;">
                         <small class="text-muted"><i class="bi bi-hourglass-split"></i> Updating...</small>
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"

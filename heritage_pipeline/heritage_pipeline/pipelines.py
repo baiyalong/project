@@ -48,6 +48,26 @@ class TaskStatusPipeline:
     def process_item(self, item, spider):
         if not self.Session:
             return item
+        
+        # Check for progress update item (dict)
+        if isinstance(item, dict) and item.get('type') == 'progress_update':
+            task_id = item.get('task_id')
+            total = item.get('total_items')
+            if task_id and total:
+                 session = self.Session()
+                 try:
+                     task = session.query(CrawlTaskModel).get(task_id)
+                     if task:
+                         task.total_items = total
+                         session.commit()
+                         spider.logger.info(f"TaskStatusPipeline: Updated total_items to {total} for task {task_id}")
+                 except Exception as e:
+                     spider.logger.error(f"Failed to update task total: {e}")
+                 finally:
+                     session.close()
+            # Drop this item so it doesn't go to other pipelines (like PostgresPipeline)
+            from scrapy.exceptions import DropItem
+            raise DropItem("Processed progress update")
 
         # Get task_id from item metadata (injected by spider from Redis payload)
         metadata = item.get('metadata', {}) or {}

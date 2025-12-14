@@ -62,4 +62,4 @@ class CrawlTask(models.Model):
         """计算进度百分比"""
         if self.total_items == 0:
             return 0
-        return int((self.processed_items / self.total_items) * 100)
+        return round((self.processed_items / self.total_items) * 100, 2)

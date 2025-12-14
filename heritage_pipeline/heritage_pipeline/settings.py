@@ -16,18 +16,22 @@ NEWSPIDER_MODULE = "heritage_pipeline.spiders"
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-# Obey robots.txt rules - Be polite!
+# Obey robots.txt rules
 ROBOTSTXT_OBEY = True
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-# Reduced for polite crawling
-CONCURRENT_REQUESTS = 8
+# Set to 1 for polite crawling
+CONCURRENT_REQUESTS = 1
 
 # Configure a delay for requests for the same website (default: 0)
-# Increased to 2 seconds for polite crawling
-DOWNLOAD_DELAY = 2
+# See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
+# See also autothrottle settings and docs
+DOWNLOAD_DELAY = 10  # 10 seconds delay between requests
+# Enable random delay (0.5 * DOWNLOAD_DELAY to 1.5 * DOWNLOAD_DELAY)
+RANDOMIZE_DOWNLOAD_DELAY = True
+
 # The download delay setting will honor only one of:
-CONCURRENT_REQUESTS_PER_DOMAIN = 4
+CONCURRENT_REQUESTS_PER_DOMAIN = 1  # Only 1 request per domain at a time
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
@@ -76,11 +80,20 @@ DOWNLOAD_HANDLERS = {
 }
 PLAYWRIGHT_LAUNCH_OPTIONS = {
     "headless": True,
-    "timeout": 20 * 1000,  # 20 seconds
+    "timeout": 30 * 1000,  # 30 seconds
+}
+# Add stealth mode and context options to avoid detection
+PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30 * 1000  # 30 seconds
+PLAYWRIGHT_CONTEXTS = {
+    "default": {
+        "viewport": {"width": 1920, "height": 1080},
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    }
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
+# Disabled in favor of fixed DOWNLOAD_DELAY for more predictable behavior
 AUTOTHROTTLE_ENABLED = False
 # The initial download delay
 AUTOTHROTTLE_START_DELAY = 2
@@ -116,7 +129,9 @@ RETRY_PRIORITY_ADJUST = -1
 SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 
 # Ensure all spiders share same duplicates filter through redis.
-DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+# DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
+# Disable dupefilter to allow re-crawling
+DUPEFILTER_CLASS = "scrapy.dupefilters.BaseDupeFilter"
 
 # Default requests serializer is pickle, but it can be changed to any module
 # with loads and dumps functions. Note that pickle is not compatible between
