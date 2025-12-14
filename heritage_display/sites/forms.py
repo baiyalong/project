@@ -1,33 +1,33 @@
 from django import forms
 
 class HeritageSiteFilterForm(forms.Form):
-    """筛选表单"""
+    """Heritage site filter form"""
     search = forms.CharField(
         required=False,
-        label='搜索',
+        label='Search',
         widget=forms.TextInput(attrs={
-            'placeholder': '输入名称或国家',
+            'placeholder': 'Enter name or country',
             'class': 'form-control'
         })
     )
     
     country = forms.CharField(
         required=False,
-        label='国家',
+        label='Country',
         widget=forms.TextInput(attrs={
-            'placeholder': '国家名称',
+            'placeholder': 'Country name',
             'class': 'form-control'
         })
     )
     
     category = forms.ChoiceField(
         required=False,
-        label='类型',
+        label='Category',
         choices=[
-            ('', '全部'),
-            ('Cultural', '文化遗产'),
-            ('Natural', '自然遗产'),
-            ('Mixed', '混合遗产'),
+            ('', 'All'),
+            ('Cultural', 'Cultural Heritage'),
+            ('Natural', 'Natural Heritage'),
+            ('Mixed', 'Mixed Heritage'),
         ],
         widget=forms.Select(attrs={'class': 'form-control'})
     )

@@ -1,15 +1,22 @@
-from django.shortcuts import render, get_object_or_404
+"""
+List view for heritage sites
+"""
+from django.shortcuts import render
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import HeritageSite
-from .forms import HeritageSiteFilterForm
+from ..models import HeritageSite
+from ..forms import HeritageSiteFilterForm
+
 
 def site_list(request):
-    """遗产列表页"""
+    """Heritage sites list page with optimized queries"""
     form = HeritageSiteFilterForm(request.GET)
-    sites = HeritageSite.objects.all().order_by('-updated_at')  # 按更新时间倒序排列
+    # Optimize query: only fetch needed fields
+    sites = HeritageSite.objects.only(
+        'id', 'name', 'country', 'category', 'updated_at', 'metadata'
+    ).order_by('-updated_at')
     
-    # 筛选逻辑
+    # Filter logic
     if form.is_valid():
         search = form.cleaned_data.get('search')
         country = form.cleaned_data.get('country')
@@ -27,7 +34,7 @@ def site_list(request):
         if category:
             sites = sites.filter(category=category)
     
-    # 分页
+    # Pagination
     paginator = Paginator(sites, 20)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
@@ -39,19 +46,3 @@ def site_list(request):
     }
     
     return render(request, 'sites/site_list.html', context)
-
-def site_detail(request, pk):
-    """遗产详情页
-    
-    说明：
-    - description_en、description_zh、content 字段已使用 html2text 转换为 Markdown 格式
-    - 在模板中使用 markdown_to_html 过滤器进行渲染
-    """
-    site = get_object_or_404(HeritageSite, pk=pk)
-    
-    context = {
-        'site': site,
-    }
-    
-    return render(request, 'sites/site_detail.html', context)
-

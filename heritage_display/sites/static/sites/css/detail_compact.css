@@ -1,0 +1,229 @@
+/* Soft & Elegant Color Scheme - Lavender Blue (Detail Page) */
+
+:root {
+    /* Matching list page colors */
+    --primary-color: #8b9dc3;
+    --primary-hover: #6b7fa8;
+    --primary-light: #e8ecf4;
+    --accent-rose: #daa5a4;
+    --accent-gold: #d4b896;
+    --accent-mint: #a8c5b8;
+    --text-primary: #3e4a5c;
+    --text-secondary: #6b7a8f;
+    --text-muted: #9aa8ba;
+    --bg-primary: #fcfcfd;
+    --bg-secondary: #f6f7fb;
+    --bg-tertiary: #eceef5;
+    --border-color: #e3e6ef;
+}
+
+body {
+    background: var(--bg-secondary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.detail-layout {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+/* Hero section - elegant lavender */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-light) 0%, #f0f2f8 100%);
+    color: var(--text-primary);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 12px rgba(139, 157, 195, 0.12);
+}
+
+.hero-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-primary);
+}
+
+.hero-title i {
+    font-size: 2.25rem;
+    color: var(--primary-color);
+}
+
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.meta-item {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.meta-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Content cards */
+.content-card {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(139, 157, 195, 0.12);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    background: var(--bg-secondary);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--primary-color);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Source link button */
+.source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(139, 157, 195, 0.25);
+}
+
+.source-link:hover {
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(139, 157, 195, 0.35);
+}
+
+/* Badges */
+.category-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.badge-cultural {
+    background: rgba(139, 157, 195, 0.15);
+    color: #6b7fa8;
+}
+
+.badge-natural {
+    background: rgba(168, 197, 184, 0.15);
+    color: #6b9982;
+}
+
+.badge-mixed {
+    background: rgba(218, 165, 164, 0.15);
+    color: #b8827f;
+}
+
+/* Markdown content */
+.markdown-content {
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.markdown-content h1 {
+    font-size: 1.75rem;
+}
+
+.markdown-content h2 {
+    font-size: 1.5rem;
+}
+
+.markdown-content h3 {
+    font-size: 1.25rem;
+}
+
+.markdown-content p {
+    margin-bottom: 1rem;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+    margin-bottom: 1rem;
+    padding-left: 1.75rem;
+}
+
+.markdown-content li {
+    margin-bottom: 0.5rem;
+}
+
+.markdown-content a {
+    color: var(--primary-color);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(139, 157, 195, 0.3);
+}
+
+.markdown-content a:hover {
+    color: var(--primary-hover);
+    border-bottom-color: var(--primary-hover);
+}
+
+.markdown-content code {
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    color: var(--text-primary);
+}
+
+.markdown-content pre {
+    background: var(--bg-tertiary);
+    padding: 1.25rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.markdown-content pre code {
+    background: none;
+    padding: 0;
+}

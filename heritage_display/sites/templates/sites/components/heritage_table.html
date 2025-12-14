@@ -1,0 +1,80 @@
+{# Heritage sites table component #}
+<div class="table-responsive">
+    <table class="compact-table">
+        <thead>
+            <tr>
+                <th style="width: 8%;">ID</th>
+                <th style="width: 35%;">Name</th>
+                <th style="width: 18%;">Country</th>
+                <th style="width: 12%;">Category</th>
+                <th style="width: 12%;">Updated</th>
+                <th style="width: 15%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for site in page_obj %}
+            <tr>
+                <td>
+                    <span class="id-badge">#{{ site.id }}</span>
+                </td>
+                <td>
+                    <div class="site-name" title="{{ site.name }}">{{ site.name }}</div>
+                </td>
+                <td>
+                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                    {{ site.country }}
+                </td>
+                <td>
+                    {% if site.category == 'Cultural' %}
+                    <span class="compact-badge badge-cultural">
+                        <i class="bi bi-building"></i> Cultural
+                    </span>
+                    {% elif site.category == 'Natural' %}
+                    <span class="compact-badge badge-natural">
+                        <i class="bi bi-tree-fill"></i> Natural
+                    </span>
+                    {% else %}
+                    <span class="compact-badge badge-mixed">
+                        <i class="bi bi-star-fill"></i> Mixed
+                    </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <small class="text-muted">
+                        {{ site.updated_at|date:"Y-m-d H:i" }}
+                    </small>
+                </td>
+                <td>
+                    <div class="d-flex gap-1 align-items-center">
+                        <a href="{% url 'sites:detail' site.pk %}" class="btn btn-sm btn-outline-primary action-btn">
+                            <i class="bi bi-eye-fill"></i> View
+                        </a>
+                        <button class="btn btn-sm btn-outline-success action-btn btn-update-single"
+                            data-site-id="{{ site.pk }}" data-site-name="{{ site.name }}">
+                            <i class="bi bi-arrow-repeat"></i> Update
+                        </button>
+                    </div>
+
+                    {# Progress Display (initially hidden) #}
+                    <div class="item-progress mt-1" data-site-name="{{ site.name }}" style="display: none;">
+                        <small class="text-muted"><i class="bi bi-hourglass-split"></i> Updating...</small>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-5">
+                    <div style="font-size: 3rem; color: #d1d5db;">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <p class="text-muted mt-3">No heritage sites found</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

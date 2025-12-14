@@ -10,8 +10,16 @@ class HeritageSpider(scrapy.Spider):
     start_urls = ["https://whc.unesco.org/en/list/"]
 
     def start_requests(self):
-        for url in self.start_urls:
-            yield scrapy.Request(url, meta={'playwright': True})
+        # 支持单URL爬取模式
+        single_url = getattr(self, 'url', None)
+        if single_url:
+            # 单条爬取模式：直接访问详情页
+            self.log(f"Single URL mode: {single_url}")
+            yield scrapy.Request(single_url, callback=self.parse_detail_auto, meta={'playwright': True})
+        else:
+            # 全量爬取模式：从列表页开始
+            for url in self.start_urls:
+                yield scrapy.Request(url, meta={'playwright': True})
 
     def parse(self, response):
         """
@@ -104,3 +112,23 @@ class HeritageSpider(scrapy.Spider):
         item['metadata'] = {'url': response.url}
 
         yield item
+
+    def parse_detail_auto(self, response):
+        """
+        自动检测类别的详情页解析方法（用于单URL模式）
+        """
+        # 尝试从页面中提取类别信息
+        # 通常在页面的某个位置会标注类别
+        category = "Cultural"  # 默认值
+        
+        # 尝试从页面元素中提取类别
+        category_text = response.xpath('//div[contains(@class, "category")]//text()').get()
+        if category_text:
+            category_lower = category_text.lower()
+            if 'natural' in category_lower:
+                category = "Natural"
+            elif 'mixed' in category_lower:
+                category = "Mixed"
+        
+        # 调用原有的详情页解析逻辑
+        yield from self.parse_detail(response, category)

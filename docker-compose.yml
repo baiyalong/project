@@ -37,7 +37,27 @@ services:
       - ANONYMIZED_TELEMETRY=FALSE
     restart: unless-stopped
 
+  heritage_ollama:
+    image: docker.io/ollama/ollama:latest
+    container_name: heritage_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment to use GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    restart: unless-stopped
+
+
+
 volumes:
   postgres_data:
   redis_data:
   chroma_data:
+  ollama_data:

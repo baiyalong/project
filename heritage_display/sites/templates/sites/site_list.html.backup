@@ -1,0 +1,854 @@
+{% extends 'base.html' %}
+
+{% block title %}Heritage List - World Heritage Data System{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== Soft & Low Contrast Color Scheme ===== */
+
+    :root {
+        /* Soft neutral colors - low saturation */
+        --primary-color: #6b7280;
+        --primary-hover: #4b5563;
+        --primary-light: #e5e7eb;
+
+        /* Muted accent colors */
+        --accent-teal: #5f9ea0;
+        --accent-sage: #8fbc8f;
+        --accent-amber: #d4a574;
+
+        /* Text colors - softer contrast */
+        --text-primary: #374151;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+
+        /* Backgrounds - warm neutrals */
+        --bg-primary: #fafaf9;
+        --bg-secondary: #f5f5f4;
+        --bg-tertiary: #e7e5e4;
+
+        /* Borders - subtle */
+        --border-color: #e5e7eb;
+        --border-hover: #d1d5db;
+    }
+
+    body {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .list-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 1.25rem;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 1.25rem;
+    }
+
+    .sidebar {
+        position: sticky;
+        top: 80px;
+        background: var(--bg-primary);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        max-height: calc(100vh - 100px);
+    }
+
+    .sidebar-header {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-content {
+        padding: 1.25rem;
+    }
+
+    .filter-section {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.625rem 0.875rem;
+        font-size: 14px;
+        transition: all 0.2s;
+        background: var(--bg-primary);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+        outline: none;
+    }
+
+    .stats-box {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-top: 1.25rem;
+        text-align: center;
+        border: 1px solid var(--border-color);
+    }
+
+    .stats-box .count {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.375rem 0;
+        color: var(--primary-color);
+    }
+
+    .stats-box .label {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .crawl-control {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-crawl-full {
+        width: 100%;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .btn-crawl-full:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .main-content {
+        background: var(--bg-primary);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .content-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+    }
+
+    .compact-table {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .compact-table thead th {
+        background: var(--bg-secondary);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        border-bottom: 2px solid var(--border-color);
+        padding: 1rem 1.25rem;
+        white-space: nowrap;
+    }
+
+    .compact-table tbody td {
+        padding: 1rem 1.25rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .compact-table tbody tr {
+        transition: background 0.15s;
+    }
+
+    .compact-table tbody tr:hover {
+        background: var(--bg-secondary);
+    }
+
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 13px;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1.5px solid var(--border-color);
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary-light);
+        border-color: var(--primary-color);
+    }
+
+    .btn-outline-success {
+        background: transparent;
+        color: var(--accent-sage);
+        border: 1.5px solid var(--border-color);
+    }
+
+    .btn-outline-success:hover {
+        background: rgba(143, 188, 143, 0.1);
+        border-color: var(--accent-sage);
+    }
+
+    .id-badge {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        padding: 0.25rem 0.625rem;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .compact-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 11px;
+    }
+
+    .badge-cultural {
+        background: rgba(95, 158, 160, 0.15);
+        color: var(--accent-teal);
+    }
+
+    .badge-natural {
+        background: rgba(143, 188, 143, 0.15);
+        color: var(--accent-sage);
+    }
+
+    .badge-mixed {
+        background: rgba(212, 165, 116, 0.15);
+        color: var(--accent-amber);
+    }
+
+    .progress {
+        height: 8px;
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background: var(--primary-color);
+    }
+
+    .pagination {
+        gap: 0.5rem;
+        padding: 1.25rem;
+    }
+
+    .page-link {
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        padding: 0.5rem 0.875rem;
+        border-radius: 8px;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .page-link:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    @media (max-width: 992px) {
+        .list-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+            position: relative;
+            top: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-funnel-fill"></i> Filters & Stats
+        </div>
+        <div class="sidebar-content">
+            <!-- Filter Form -->
+            <form method="get" action="">
+                <div class="filter-section">
+                    <label for="id_search" class="form-label">
+                        <i class="bi bi-search"></i> Search
+                    </label>
+                    {{ form.search }}
+                    /* ===== Optimized Color Scheme ===== */
+
+                    :root {
+                    --primary-blue: #3b82f6;
+                    --primary-blue-hover: #2563eb;
+                    --primary-blue-light: #dbeafe;
+                    --secondary-purple: #8b5cf6;
+                    --success-green: #10b981;
+                    --warning-orange: #f59e0b;
+                    --text-primary: #1f2937;
+                    --text-secondary: #6b7280;
+                    --text-muted: #9ca3af;
+                    --bg-primary: #ffffff;
+                    --bg-secondary: #f8fafc;
+                    --bg-tertiary: #f1f5f9;
+                    --border-color: #e2e8f0;
+                    }
+
+                    body {
+                    background: var(--bg-secondary);
+                    color: var(--text-primary);
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    }
+
+                    .list-layout {
+                    display: grid;
+                    grid-template-columns: 260px 1fr;
+                    gap: 1.25rem;
+                    max-width: 1600px;
+                    margin: 0 auto;
+                    padding: 1.25rem;
+                    }
+
+                    .sidebar {
+                    position: sticky;
+                    top: 80px;
+                    background: var(--bg-primary);
+                    border-radius: 12px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                    border: 1px solid var(--border-color);
+                    overflow: hidden;
+                    max-height: calc(100vh - 100px);
+                    }
+
+                    .sidebar-header {
+                    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+                    color: white;
+                    padding: 1rem 1.25rem;
+                    font-weight: 600;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    }
+
+                    .sidebar-content {
+                    padding: 1.25rem;
+                    }
+
+                    .filter-section {
+                    margin-bottom: 1rem;
+                    }
+
+                    .form-label {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    margin-bottom: 0.5rem;
+                    display: block;
+                    }
+
+                    .form-control,
+                    .form-select {
+                    border: 1px solid var(--border-color);
+                    border-radius: 8px;
+                    padding: 0.625rem 0.875rem;
+                    font-size: 14px;
+                    transition: all 0.2s;
+                    background: var(--bg-primary);
+                    }
+
+                    .form-control:focus,
+                    .form-select:focus {
+                    border-color: var(--primary-blue);
+                    box-shadow: 0 0 0 3px var(--primary-blue-light);
+                    outline: none;
+                    }
+
+                    .stats-box {
+                    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-purple));
+                    color: white;
+                    border-radius: 12px;
+                    padding: 1.25rem;
+                    margin-top: 1.25rem;
+                    text-align: center;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+                    }
+
+                    .stats-box .count {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    margin: 0.375rem 0;
+                    }
+
+                    .stats-box .label {
+                    font-size: 12px;
+                    opacity: 0.9;
+                    }
+
+                    .crawl-control {
+                    margin-top: 1.25rem;
+                    padding-top: 1.25rem;
+                    border-top: 1px solid var(--border-color);
+                    }
+
+                    .btn-crawl-full {
+                    width: 100%;
+                    background: var(--primary-blue);
+                    color: white;
+                    border: none;
+                    padding: 0.75rem 1rem;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    transition: all 0.2s;
+                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+                    }
+
+                    .btn-crawl-full:hover {
+                    background: var(--primary-blue-hover);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                    transform: translateY(-1px);
+                    }
+
+                    .main-content {
+                    background: var(--bg-primary);
+                    border-radius: 12px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                    border: 1px solid var(--border-color);
+                    overflow: hidden;
+                    }
+
+                    .content-header {
+                    padding: 1.25rem 1.5rem;
+                    border-bottom: 1px solid var(--border-color);
+                    font-weight: 600;
+                    font-size: 16px;
+                    color: var(--text-primary);
+                    background: var(--bg-tertiary);
+                    }
+
+                    .compact-table {
+                    width: 100%;
+                    font-size: 14px;
+                    }
+
+                    .compact-table thead th {
+                    background: var(--bg-tertiary);
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                    letter-spacing: 0.05em;
+                    color: var(--text-secondary);
+                    border-bottom: 2px solid var(--border-color);
+                    padding: 1rem 1.25rem;
+                    white-space: nowrap;
+                    }
+
+                    .compact-table tbody td {
+                    padding: 1rem 1.25rem;
+                    vertical-align: middle;
+                    border-bottom: 1px solid var(--border-color);
+                    color: var(--text-primary);
+                    }
+
+                    .compact-table tbody tr {
+                    transition: background 0.15s;
+                    }
+
+                    .compact-table tbody tr:hover {
+                    background: var(--bg-secondary);
+                    }
+
+                    .btn {
+                    border-radius: 8px;
+                    font-weight: 500;
+                    font-size: 13px;
+                    padding: 0.5rem 1rem;
+                    transition: all 0.2s;
+                    }
+
+                    .btn-primary {
+                    background: var(--primary-blue);
+                    color: white;
+                    border: none;
+                    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+                    }
+
+                    .btn-primary:hover {
+                    background: var(--primary-blue-hover);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                    transform: translateY(-1px);
+                    }
+
+                    .btn-outline-primary {
+                    background: transparent;
+                    color: var(--primary-blue);
+                    border: 1.5px solid var(--border-color);
+                    }
+
+                    .btn-outline-primary:hover {
+                    background: var(--primary-blue-light);
+                    border-color: var(--primary-blue);
+                    }
+
+                    .btn-outline-success {
+                    background: transparent;
+                    color: var(--success-green);
+                    border: 1.5px solid var(--border-color);
+                    }
+
+                    .btn-outline-success:hover {
+                    background: rgba(16, 185, 129, 0.1);
+                    border-color: var(--success-green);
+                    }
+
+                    .id-badge {
+                    background: var(--bg-tertiary);
+                    color: var(--text-secondary);
+                    padding: 0.25rem 0.625rem;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    }
+
+                    .compact-badge {
+                    padding: 0.25rem 0.625rem;
+                    border-radius: 6px;
+                    font-weight: 500;
+                    font-size: 11px;
+                    }
+
+                    .badge-cultural {
+                    background: rgba(59, 130, 246, 0.12);
+                    color: var(--primary-blue);
+                    }
+
+                    .badge-natural {
+                    background: rgba(16, 185, 129, 0.12);
+                    color: var(--success-green);
+                    }
+
+                    .badge-mixed {
+                    background: rgba(245, 158, 11, 0.12);
+                    color: var(--warning-orange);
+                    }
+
+                    .progress {
+                    height: 8px;
+                    background: var(--bg-tertiary);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    }
+
+                    .progress-bar {
+                    background: var(--primary-blue);
+                    }
+
+                    .pagination {
+                    gap: 0.5rem;
+                    padding: 1.25rem;
+                    }
+
+                    .page-link {
+                    border: 1px solid var(--border-color);
+                    color: var(--text-primary);
+                    background: var(--bg-primary);
+                    padding: 0.5rem 0.875rem;
+                    border-radius: 8px;
+                    font-size: 13px;
+                    transition: all 0.2s;
+                    }
+
+                    .page-link:hover {
+                    background: var(--bg-tertiary);
+                    border-color: var(--primary-blue);
+                    color: var(--primary-blue);
+                    }
+
+                    .page-item.active .page-link {
+                    background: var(--primary-blue);
+                    border-color: var(--primary-blue);
+                    color: white;
+                    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+                    }
+
+                    @media (max-width: 992px) {
+                    .list-layout {
+                    grid-template-columns: 1fr;
+                    }
+
+                    .sidebar {
+                    position: relative;
+                    top: 0;
+                    }
+                    }
+                    </style>
+                    {% endblock %}
+
+                    {% block content %}
+                    <div class="list-layout">
+                        <!-- Left Sidebar -->
+                        <aside class="sidebar">
+                            <div class="sidebar-header">
+                                <i class="bi bi-funnel-fill"></i> Filters & Stats
+                            </div>
+                            <div class="sidebar-content">
+                                <!-- Filter Form -->
+                                <form method="get" action="">
+                                    <div class="filter-section">
+                                        <label for="id_search" class="form-label">
+                                            <i class="bi bi-search"></i> Search
+                                        </label>
+                                        {{ form.search }}
+                                    </div>
+
+                                    <div class="filter-section">
+                                        <label for="id_country" class="form-label">
+                                            <i class="bi bi-geo-alt-fill"></i> Country
+                                        </label>
+                                        {{ form.country }}
+                                    </div>
+
+                                    <div class="filter-section">
+                                        <label for="id_category" class="form-label">
+                                            <i class="bi bi-tag-fill"></i> Category
+                                        </label>
+                                        {{ form.category }}
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </form>
+
+                                <!-- Statistics -->
+                                <div class="stats-box">
+                                    <i class="bi bi-database-fill" style="font-size: 2rem;"></i>
+                                    <div class="count">{{ total_count }}</div>
+                                    <div class="label">Heritage Sites</div>
+                                </div>
+
+                                <!-- Crawl Control -->
+                                <div class="crawl-control">
+                                    <button id="btn-start-full-crawl" class="btn-crawl-full">
+                                        <i class="bi bi-arrow-repeat"></i> Refresh All Data
+                                    </button>
+
+                                    <!-- Total Progress (initially hidden) -->
+                                    <div id="total-progress" class="mt-3" style="display: none;">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <small class="text-muted"><i class="bi bi-hourglass-split"></i>
+                                                Crawling...</small>
+                                            <small id="total-progress-text">0%</small>
+                                        </div>
+                                        <div class="progress">
+                                            <div id="total-progress-bar"
+                                                class="progress-bar progress-bar-striped progress-bar-animated"
+                                                role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+
+                        <!-- Main Content -->
+                        <main class="main-content">
+                            <div class="content-header">
+                                <i class="bi bi-table"></i> Heritage List
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="compact-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 8%;">ID</th>
+                                            <th style="width: 35%;">Name</th>
+                                            <th style="width: 18%;">Country</th>
+                                            <th style="width: 12%;">Category</th>
+                                            <th style="width: 12%;">Updated</th>
+                                            <th style="width: 15%;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for site in page_obj %}
+                                        <tr>
+                                            <td>
+                                                <span class="id-badge">#{{ site.id }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="site-name" title="{{ site.name }}">{{ site.name }}</div>
+                                            </td>
+                                            <td>
+                                                <i class="bi bi-geo-alt-fill text-primary"></i>
+                                                {{ site.country }}
+                                            </td>
+                                            <td>
+                                                {% if site.category == 'Cultural' %}
+                                                <span class="compact-badge badge-cultural">
+                                                    <i class="bi bi-building"></i> Cultural
+                                                </span>
+                                                {% elif site.category == 'Natural' %}
+                                                <span class="compact-badge badge-natural">
+                                                    <i class="bi bi-tree-fill"></i> Natural
+                                                </span>
+                                                {% else %}
+                                                <span class="compact-badge badge-mixed">
+                                                    <i class="bi bi-star-fill"></i> Mixed
+                                                </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    {{ site.updated_at|date:"Y-m-d H:i" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex gap-1 align-items-center">
+                                                    <a href="{% url 'sites:detail' site.pk %}"
+                                                        class="btn btn-sm btn-outline-primary action-btn">
+                                                        <i class="bi bi-eye-fill"></i> View
+                                                    </a>
+                                                    <button
+                                                        class="btn btn-sm btn-outline-success action-btn btn-update-single"
+                                                        data-site-id="{{ site.pk }}" data-site-name="{{ site.name }}">
+                                                        <i class="bi bi-arrow-repeat"></i> Update
+                                                    </button>
+                                                </div>
+
+                                                <!-- Progress Display (initially hidden) -->
+                                                <div class="item-progress mt-1" data-site-name="{{ site.name }}"
+                                                    style="display: none;">
+                                                    <small class="text-muted"><i class="bi bi-hourglass-split"></i>
+                                                        Updating...</small>
+                                                    <div class="progress" style="height: 6px;">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                                            role="progressbar" style="width: 0%"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <div style="font-size: 3rem; color: #d1d5db;">
+                                                    <i class="bi bi-inbox"></i>
+                                                </div>
+                                                <p class="text-muted mt-3">No heritage sites found</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            {% if page_obj.has_other_pages %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="bi bi-chevron-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                                        </span>
+                                    </li>
+
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                            href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                            <i class="bi bi-chevron-double-right"></i>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                        </main>
+                    </div>
+                    {% endblock %}
+
+                    {% block extra_js %}
+                    {% load static %}
+                    <script src="{% static 'sites/js/crawl_control.js' %}"></script>
+                    {% endblock %}

@@ -44,13 +44,32 @@ class VectorStore:
     def __init__(self, persist_directory: Optional[str] = None, collection_name: str = "heritage_knowledge_base"):
         if chromadb is None:
             raise ImportError("chromadb is required. Install with pip install chromadb")
-        # For local simple usage, use default settings. In production supply Settings(...)
-        self.client = chromadb.Client(Settings()) if hasattr(chromadb, 'Client') else chromadb.Client()
+        
+        import os
+        chroma_host = os.getenv("CHROMA_HOST")
+        chroma_port = os.getenv("CHROMA_PORT", "8000")
+        
+        if chroma_host:
+            # Connect to remote server (e.g. docker container)
+            self.client = chromadb.HttpClient(host=chroma_host, port=int(chroma_port))
+        else:
+            # Connect to local persistent storage or ephemeral
+            if persist_directory:
+                self.client = chromadb.PersistentClient(path=persist_directory)
+            else:
+                 # Check if we should use a default persistent dir or ephemeral
+                 default_persist = os.getenv("CHROMA_DB_DIR", "./chroma_db")
+                 self.client = chromadb.PersistentClient(path=default_persist)
+
         # create or get collection
         try:
-            self.collection = self.client.get_collection(name=collection_name)
+            self.collection = self.client.get_or_create_collection(name=collection_name)
         except Exception:
-            self.collection = self.client.create_collection(name=collection_name)
+            # Fallback for older chroma versions if get_or_create not available
+            try:
+                self.collection = self.client.get_collection(name=collection_name)
+            except:
+                self.collection = self.client.create_collection(name=collection_name)
 
     def add_documents(self, ids: List[str], texts: List[str], embeddings: List[List[float]], metadatas: Optional[List[Dict]] = None):
         """Add documents to the collection. All lists must be same length."""

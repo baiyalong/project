@@ -6,4 +6,9 @@ app_name = 'sites'
 urlpatterns = [
     path('', views.site_list, name='list'),
     path('<int:pk>/', views.site_detail, name='detail'),
+    
+    # 爬虫触发
+    path('crawl/start-full/', views.start_full_crawl, name='start_full_crawl'),
+    path('crawl/start-single/<int:pk>/', views.start_single_crawl, name='start_single_crawl'),
+    path('crawl/status/<int:task_id>/', views.crawl_status, name='crawl_status'),
 ]

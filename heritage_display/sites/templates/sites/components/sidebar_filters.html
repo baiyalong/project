@@ -1,0 +1,61 @@
+{# Sidebar filters and statistics component #}
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <i class="bi bi-funnel-fill"></i> Filters & Stats
+    </div>
+    <div class="sidebar-content">
+        {# Filter Form #}
+        <form method="get" action="">
+            <div class="filter-section">
+                <label for="id_search" class="form-label">
+                    <i class="bi bi-search"></i> Search
+                </label>
+                {{ form.search }}
+            </div>
+
+            <div class="filter-section">
+                <label for="id_country" class="form-label">
+                    <i class="bi bi-geo-alt-fill"></i> Country
+                </label>
+                {{ form.country }}
+            </div>
+
+            <div class="filter-section">
+                <label for="id_category" class="form-label">
+                    <i class="bi bi-tag-fill"></i> Category
+                </label>
+                {{ form.category }}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </form>
+
+        {# Statistics #}
+        <div class="stats-box">
+            <i class="bi bi-database-fill" style="font-size: 2rem;"></i>
+            <div class="count">{{ total_count }}</div>
+            <div class="label">Heritage Sites</div>
+        </div>
+
+        {# Crawl Control #}
+        <div class="crawl-control">
+            <button id="btn-start-full-crawl" class="btn-crawl-full">
+                <i class="bi bi-arrow-repeat"></i> Refresh All Data
+            </button>
+
+            {# Total Progress (initially hidden) #}
+            <div id="total-progress" class="mt-3" style="display: none;">
+                <div class="d-flex justify-content-between mb-1">
+                    <small class="text-muted"><i class="bi bi-hourglass-split"></i> Crawling...</small>
+                    <small id="total-progress-text">0%</small>
+                </div>
+                <div class="progress">
+                    <div id="total-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                        role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
