@@ -5,6 +5,7 @@ This is a minimal implementation intended as a starting point.
 """
 from typing import List, Dict, Optional
 import numpy as np
+from config import settings
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -21,10 +22,12 @@ except Exception:  # pragma: no cover
 class EmbeddingService:
     """Wraps a sentence-transformers model to produce embeddings."""
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = settings.EMBEDDING_MODEL):
         if SentenceTransformer is None:
-            raise ImportError("sentence-transformers is required. Install with pip install sentence-transformers")
-        self.model = SentenceTransformer(model_name)
+            raise ImportError(
+                "sentence-transformers is required. Install with `pip install sentence-transformers`"
+            )
+        self.model = SentenceTransformer(model_name, device="cpu")
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Return a list of vector embeddings for the input texts."""
@@ -41,13 +44,12 @@ class EmbeddingService:
 class VectorStore:
     """A small wrapper around ChromaDB for add/query operations."""
 
-    def __init__(self, persist_directory: Optional[str] = None, collection_name: str = "heritage_knowledge_base"):
+    def __init__(self, persist_directory: Optional[str] = None, collection_name: str = settings.COLLECTION_NAME):
         if chromadb is None:
-            raise ImportError("chromadb is required. Install with pip install chromadb")
+            raise ImportError("chromadb is required. Install with `pip install chromadb`")
         
-        import os
-        chroma_host = os.getenv("CHROMA_HOST")
-        chroma_port = os.getenv("CHROMA_PORT", "8000")
+        chroma_host = settings.CHROMA_HOST
+        chroma_port = settings.CHROMA_PORT
         
         if chroma_host:
             # Connect to remote server (e.g. docker container)
@@ -57,9 +59,8 @@ class VectorStore:
             if persist_directory:
                 self.client = chromadb.PersistentClient(path=persist_directory)
             else:
-                 # Check if we should use a default persistent dir or ephemeral
-                 default_persist = os.getenv("CHROMA_DB_DIR", "./chroma_db")
-                 self.client = chromadb.PersistentClient(path=default_persist)
+                 # Use configured default persistent dir
+                 self.client = chromadb.PersistentClient(path=settings.CHROMA_DB_DIR)
 
         # create or get collection
         try:

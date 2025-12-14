@@ -4,39 +4,48 @@ from services import EmbeddingService, VectorStore
 from llm import OllamaLLM
 from pipeline import RAGPipeline
 from db_index import index_from_db
+from config import settings
 
 st.set_page_config(page_title="Heritage Insights", page_icon="🏛️", layout="wide")
 
-st.title("🏛️ Heritage Insights - 私有世界遗产知识库")
+st.title("🏛️ Heritage Insights - World Heritage Knowledge Base")
 
 # Sidebar
 with st.sidebar:
-    st.header("系统控制")
+    st.header("System Control")
     
     # Model config
-    model_name = st.text_input("Ollama 模型名称", value="llama3.2")
-    ollama_url = st.text_input("Ollama URL", value=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
+    model_name = st.text_input("Ollama Model Name", value=settings.OLLAMA_MODEL)
+    ollama_url = st.text_input("Ollama URL", value=settings.OLLAMA_BASE_URL)
     
     st.divider()
     
     # ETL Control
-    if st.button("🔄 重建索引 (ETL)"):
-        with st.status("正在建立索引...", expanded=True) as status:
+    if st.button("🔄 Rebuild Index (ETL)"):
+        with st.status("Indexing in progress...", expanded=True) as status:
             try:
-                st.write("初始化数据库连接...")
-                db_url = os.getenv("DATABASE_URL")
-                if not db_url:
-                    # Fallback default for local dev
-                    db_url = "postgresql://heritage_user:heritage_password@localhost:5432/heritage"
+                st.write("Initializing database connection...")
+                db_url = settings.DATABASE_URL
                 
-                st.write("开始从 Postgres 读取数据并写入向量库...")
+                st.write("Reading data from Postgres and writing to vector store...")
                 # Note: This is a synchronous call, might take time
                 index_from_db(database_url=db_url)
-                status.update(label="索引构建完成!", state="complete", expanded=False)
-                st.success("数据已同步完成")
+                status.update(label="Index build completed!", state="complete", expanded=False)
+                st.success("Data synchronization complete")
             except Exception as e:
-                status.update(label="索引构建失败", state="error")
+                status.update(label="Index build failed", state="error")
                 st.error(f"Error: {e}")
+
+    st.divider()
+    st.markdown("""
+    ### About
+    Use this tool to ask questions about World Heritage Sites.
+    
+    **Features:**
+    - RAG (Retrieval-Augmented Generation)
+    - Vector Search via ChromaDB
+    - LLM via Ollama
+    """)
 
 # Main Chat Interface
 if "messages" not in st.session_state:
@@ -50,13 +59,13 @@ for message in st.session_state.messages:
 # Initialization (Lazy load)
 @st.cache_resource
 def get_pipeline(model_name, ollama_url):
-    embedding_service = EmbeddingService(model_name="all-MiniLM-L6-v2") # Or BAAI/bge-m3 if desired, but using default from services.py
-    vector_store = VectorStore()
+    embedding_service = EmbeddingService(model_name=settings.EMBEDDING_MODEL) 
+    vector_store = VectorStore(collection_name=settings.COLLECTION_NAME)
     llm = OllamaLLM(model=model_name, base_url=ollama_url)
     return RAGPipeline(embedding_service, vector_store, llm)
 
 # User Input
-if prompt := st.chat_input("请输入关于世界遗产的问题... (例如: 长城在哪里?)"):
+if prompt := st.chat_input("Ask a question about World Heritage sites... (e.g., Where is the Great Wall?)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").markdown(prompt)
 
@@ -87,24 +96,28 @@ if prompt := st.chat_input("请输入关于世界遗产的问题... (例如: 长
                     'metadata': metadatas[i] if metadatas else {},
                 })
             
-            final_prompt = pipeline._build_prompt(prompt, docs)
-            
-            # Call Streaming LLM
-            for chunk in pipeline.llm.stream_generate(final_prompt):
-                full_response += chunk
-                response_placeholder.markdown(full_response + "▌")
-            
-            response_placeholder.markdown(full_response)
-            
-            # Optional: Show sources in an expander
-            if docs:
-                with st.expander("参考来源 (Sources)"):
-                    for d in docs:
-                        st.markdown(f"**ID: {d['id']}**")
-                        st.text(d['text'][:200] + "...")
+            if not docs:
+                full_response = "I couldn't find any relevant documents in the knowledge base. Please try a different query or rebuild the index."
+                response_placeholder.markdown(full_response)
+            else:
+                final_prompt = pipeline._build_prompt(prompt, docs)
+                
+                # Call Streaming LLM
+                for chunk in pipeline.llm.stream_generate(final_prompt):
+                    full_response += chunk
+                    response_placeholder.markdown(full_response + "▌")
+                
+                response_placeholder.markdown(full_response)
+                
+                # Show sources in an expander
+                with st.expander("📚 View Retrieved Sources", expanded=False):
+                    for idx, d in enumerate(docs):
+                        st.markdown(f"**{idx+1}. {d.get('metadata', {}).get('source', d['id'])}**")
+                        st.caption(f"Relevance Distance: {raw_results['distances'][0][idx] if 'distances' in raw_results else 'N/A'}")
+                        st.text(d['text'][:500] + "...")
                         
         except Exception as e:
-            full_response = f"⚠️ Error: {str(e)}"
+            full_response = f"⚠️ An error occurred: {str(e)}"
             response_placeholder.error(full_response)
     
     st.session_state.messages.append({"role": "assistant", "content": full_response})

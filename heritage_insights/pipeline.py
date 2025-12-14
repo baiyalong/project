@@ -6,8 +6,8 @@ to synthesize an answer.
 """
 from typing import List, Dict, Any, Optional
 
-from .services import EmbeddingService, VectorStore
-from .llm import BaseLLM
+from services import EmbeddingService, VectorStore
+from llm import BaseLLM
 
 
 class RAGPipeline:
@@ -23,8 +23,8 @@ class RAGPipeline:
         for i, d in enumerate(docs, start=1):
             title = d.get('metadata', {}).get('source') or d.get('id')
             body = (d.get('documents') or d.get('document') or d.get('text') or '')
-            # Keep a short preview to avoid overly large prompts
-            preview = body[:200].replace('\n', ' ')
+            # Keep a preview but allow enough context for RAG
+            preview = body[:2000].replace('\n', ' ')
             parts.append(f"[{i}] {title}: {preview}")
 
         parts.append("=== End Documents ===")

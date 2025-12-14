@@ -5,7 +5,7 @@ Provides an abstract `BaseLLM`, `MockLLM`, and `OllamaLLM`.
 from typing import Dict, Any, Optional
 import requests
 import json
-import os
+from config import settings
 
 class BaseLLM:
     """Abstract LLM interface.
@@ -37,9 +37,9 @@ class MockLLM(BaseLLM):
 class OllamaLLM(BaseLLM):
     """Adapter for running LLMs via Ollama."""
 
-    def __init__(self, model: str = "llama3.2", base_url: Optional[str] = None):
+    def __init__(self, model: str = settings.OLLAMA_MODEL, base_url: Optional[str] = settings.OLLAMA_BASE_URL):
         self.model = model
-        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.base_url = base_url
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         """Generate text using Ollama API."""
@@ -58,11 +58,15 @@ class OllamaLLM(BaseLLM):
         }
 
         try:
-            response = requests.post(url, json=payload)
+            response = requests.post(url, json=payload, timeout=120)
             response.raise_for_status()
             return response.json().get("response", "")
+        except requests.exceptions.Timeout:
+            return f"Error: Ollama request timed out ({self.base_url}). Is the model loaded?"
+        except requests.exceptions.ConnectionError:
+            return f"Error: Could not connect to Ollama at {self.base_url}. Is it running?"
         except Exception as e:
-            return f"Error calling Ollama: {e}"
+            return f"Error calling Ollama: {str(e)}"
     
     def stream_generate(self, prompt: str, **kwargs: Any):
         """Generator for streaming responses."""
