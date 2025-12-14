@@ -4,6 +4,9 @@ Crawler control views for triggering and monitoring crawl tasks
 import subprocess
 import os
 import logging
+import json
+import redis
+import time
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.conf import settings
@@ -13,57 +16,56 @@ from ..models import HeritageSite, CrawlTask
 
 logger = logging.getLogger(__name__)
 
+# Initialize Redis connection
+# Use settings.REDIS_URL if available, else default
+redis_url = getattr(settings, 'REDIS_URL', 'redis://localhost:6379')
+# Safely create redis client
+try:
+    r = redis.from_url(redis_url)
+except Exception as e:
+    logger.error(f"Failed to initialize Redis connection: {e}")
+    r = None
 
 @login_required
 @require_http_methods(["POST"])
 def start_full_crawl(request):
-    """Start full crawl of all heritage sites"""
+    """Start full crawl of all heritage sites via Redis queue"""
+    if not r:
+        return JsonResponse({'error': 'Redis service not available'}, status=503)
+
+    # Check for existing running tasks in DB
+    if CrawlTask.objects.filter(status='running', task_type='full').exists():
+        return JsonResponse({'error': 'A full crawl task is already running. Please wait for it to finish.'}, status=409)
+
     try:
         task = CrawlTask.objects.create(task_type='full', status='pending')
         
-        # Get Python interpreter and spider script paths
-        python_path = os.path.join(settings.BASE_DIR.parent, '.venv', 'bin', 'python')
-        spider_path = os.path.join(settings.BASE_DIR.parent, 'heritage_pipeline', 'run_spider.py')
+        # Prepare payload for Scrapy-Redis
+        # The spider will read this JSON
+        payload = {
+            'task_id': task.id,
+            'task_type': 'full',
+            'url': 'https://whc.unesco.org/en/list/' # Start URL for full crawl
+        }
         
-        # Validate paths exist
-        if not os.path.exists(python_path):
-            raise FileNotFoundError(f"Python interpreter not found: {python_path}")
-        if not os.path.exists(spider_path):
-            raise FileNotFoundError(f"Spider script not found: {spider_path}")
+        # Push to Redis queue (heritage_spider:start_urls)
+        r.lpush('heritage_spider:start_urls', json.dumps(payload))
         
-        # Validate task ID (prevent command injection)
-        task_id_str = str(task.id)
-        if not task_id_str.isdigit():
-            raise ValueError("Invalid task ID")
+        logger.info(f"Queued full crawl task {task.id} to Redis")
+        return JsonResponse({'task_id': task.id, 'status': 'queued'})
         
-        # Start crawler subprocess with error handling
-        process = subprocess.Popen(
-            [python_path, spider_path, '--task-id', task_id_str],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        
-        task.status = 'running'
-        task.save()
-        
-        logger.info(f"Started full crawl task {task.id}, process PID: {process.pid}")
-        return JsonResponse({'task_id': task.id, 'status': 'started'})
-        
-    except FileNotFoundError as e:
-        logger.error(f"File not found error: {str(e)}")
-        return JsonResponse({'error': 'Configuration error', 'detail': str(e)}, status=500)
-    except ValueError as e:
-        logger.error(f"Validation error: {str(e)}")
-        return JsonResponse({'error': 'Invalid input', 'detail': str(e)}, status=400)
     except Exception as e:
-        logger.error(f"Unexpected error starting crawl: {str(e)}")
+        logger.error(f"Error queuing full crawl: {str(e)}")
         return JsonResponse({'error': 'Internal server error', 'detail': str(e)}, status=500)
 
 
 @login_required
 @require_http_methods(["POST"])
 def start_single_crawl(request, pk):
-    """Start single site update crawl"""
+    """Start single site update crawl via Redis queue"""
+    if not r:
+        return JsonResponse({'error': 'Redis service not available'}, status=503)
+
     try:
         # Validate pk is integer
         try:
@@ -89,40 +91,21 @@ def start_single_crawl(request, pk):
             total_items=1
         )
         
-        # Get paths
-        python_path = os.path.join(settings.BASE_DIR.parent, '.venv', 'bin', 'python')
-        spider_path = os.path.join(settings.BASE_DIR.parent, 'heritage_pipeline', 'run_spider.py')
+        # Prepare payload
+        payload = {
+            'task_id': task.id,
+            'task_type': 'single',
+            'url': url
+        }
         
-        # Validate paths
-        if not os.path.exists(python_path) or not os.path.exists(spider_path):
-            raise FileNotFoundError("Required files not found")
+        # Push to Redis
+        r.lpush('heritage_spider:start_urls', json.dumps(payload))
         
-        # Validate inputs (prevent command injection)
-        task_id_str = str(task.id)
-        if not task_id_str.isdigit():
-            raise ValueError("Invalid task ID")
+        logger.info(f"Queued single crawl task {task.id} for site {pk} to Redis")
+        return JsonResponse({'task_id': task.id, 'status': 'queued'})
         
-        # Start subprocess
-        process = subprocess.Popen(
-            [python_path, spider_path, '--task-id', task_id_str, '--url', url],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        
-        task.status = 'running'
-        task.save()
-        
-        logger.info(f"Started single crawl task {task.id} for site {pk}, process PID: {process.pid}")
-        return JsonResponse({'task_id': task.id, 'status': 'started'})
-        
-    except FileNotFoundError as e:
-        logger.error(f"File not found error: {str(e)}")
-        return JsonResponse({'error': 'Configuration error'}, status=500)
-    except ValueError as e:
-        logger.error(f"Validation error: {str(e)}")
-        return JsonResponse({'error': 'Invalid input'}, status=400)
     except Exception as e:
-        logger.error(f"Unexpected error starting single crawl: {str(e)}")
+        logger.error(f"Error queuing single crawl: {str(e)}")
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
@@ -138,3 +121,38 @@ def crawl_status(request, task_id):
         'current_item_progress': task.current_item_progress,
         'progress_percentage': task.progress_percentage,
     })
+
+def get_active_full_crawl(request):
+    """Check if there is a running or pending full crawl task"""
+    task = CrawlTask.objects.filter(status__in=['pending', 'running'], task_type='full').first()
+    if task:
+        return JsonResponse({'task_id': task.id, 'status': task.status})
+    return JsonResponse({'task_id': None, 'status': 'idle'})
+
+@login_required
+@require_http_methods(["POST"])
+def stop_all_crawls(request):
+    """Stop running tasks and clear Redis queue"""
+    if not r:
+        return JsonResponse({'error': 'Redis service not available'}, status=503)
+
+    try:
+        # 1. Clear Redis Queues
+        # clear start_urls (new tasks)
+        r.delete('heritage_spider:start_urls')
+        # clear requests (current spider queue)
+        r.delete('heritage_spider:requests')
+        
+        # 2. Mark running tasks as stopped in DB
+        CrawlTask.objects.filter(status__in=['pending', 'running']).update(
+            status='stopped',
+            completed_at=None, # or now?
+            error_message='Stopped by user'
+        )
+        
+        logger.info("Stopped all crawls and cleared queue")
+        return JsonResponse({'status': 'stopped'})
+        
+    except Exception as e:
+        logger.error(f"Error stopping crawls: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

@@ -18,8 +18,75 @@ class CleanPipeline:
                 
         return item
 
+
+class TaskStatusPipeline:
+    """Updates crawl task status and progress in the database (Stateless)"""
+    
+    def __init__(self, postgres_uri):
+        self.postgres_uri = postgres_uri
+        self.engine = None
+        self.Session = None
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            postgres_uri=crawler.settings.get('POSTGRES_URI', 'postgresql://heritage_user:heritage_password@localhost:5432/heritage')
+        )
+
+    def open_spider(self, spider):
+        try:
+            self.engine = create_engine(self.postgres_uri)
+            self.Session = sessionmaker(bind=self.engine)
+            spider.logger.info("TaskStatusPipeline: Connected to DB")
+        except Exception as e:
+            spider.logger.error(f"Failed to connect to DB: {e}")
+
+    def close_spider(self, spider):
+        if self.engine:
+            self.engine.dispose()
+
+    def process_item(self, item, spider):
+        if not self.Session:
+            return item
+
+        # Get task_id from item metadata (injected by spider from Redis payload)
+        metadata = item.get('metadata', {}) or {}
+        task_id = metadata.get('task_id')
+        task_type = metadata.get('task_type')
+        
+        if not task_id:
+            # Maybe it's a legacy item or manual run? Skip stats update.
+            return item
+
+        session = self.Session()
+        try:
+            task = session.query(CrawlTaskModel).get(task_id)
+            if task:
+                # Update status to running if pending
+                if task.status == 'pending':
+                    task.status = 'running'
+                
+                # Increment progress
+                task.processed_items += 1
+                task.current_item = item.get('name', '')[:255]
+                
+                # For SINGLE task, we complete it immediately after one item
+                if task_type == 'single':
+                    task.status = 'completed'
+                    task.completed_at = datetime.utcnow()
+                    spider.logger.info(f"Completed single task {task_id}")
+
+                session.commit()
+        except Exception as e:
+            spider.logger.error(f"Failed to update task progress: {e}")
+        finally:
+            session.close()
+            
+        return item
+
+
 from sqlalchemy.orm import sessionmaker
-from .models import HeritageSiteModel, Base
+from .models import HeritageSiteModel, CrawlTaskModel, Base
 from sqlalchemy import create_engine
 
 class PostgresPipeline:
@@ -72,6 +139,12 @@ class PostgresPipeline:
                 if site.updated_at and (datetime.utcnow() - site.updated_at).days > 30:
                     should_update = True
                     spider.logger.info(f"Updating stale record (>30 days): {item.get('name')}")
+
+                # Force update for manual single tasks
+                task_type = item.get('metadata', {}).get('task_type')
+                if task_type == 'single':
+                    should_update = True
+                    spider.logger.info(f"Force updating single task: {item.get('name')}")
                 
                 if should_update:
                     # Update
@@ -81,6 +154,7 @@ class PostgresPipeline:
                     site.content = item.get('content')
                     site.category = item.get('category')
                     site.metadata_ = item.get('metadata')
+                    site.updated_at = datetime.utcnow() # Force update timestamp
                     spider.logger.info(f"Updated: {item.get('name')}")
                 else:
                     spider.logger.debug(f"Skipped (no changes): {item.get('name')}")

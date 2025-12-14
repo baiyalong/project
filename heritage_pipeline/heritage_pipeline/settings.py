@@ -64,8 +64,9 @@ DEFAULT_REQUEST_HEADERS = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "heritage_pipeline.pipelines.CleanPipeline": 300,
-   "heritage_pipeline.pipelines.PostgresPipeline": 400,
+   "heritage_pipeline.pipelines.CleanPipeline": 100,
+   "heritage_pipeline.pipelines.TaskStatusPipeline": 200,
+   "heritage_pipeline.pipelines.PostgresPipeline": 300,
 }
 
 # Scrapy-Playwright Settings
@@ -80,7 +81,7 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
-AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_ENABLED = False
 # The initial download delay
 AUTOTHROTTLE_START_DELAY = 2
 # The maximum download delay to be set in case of high latencies

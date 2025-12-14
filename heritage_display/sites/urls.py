@@ -11,4 +11,6 @@ urlpatterns = [
     path('crawl/start-full/', views.start_full_crawl, name='start_full_crawl'),
     path('crawl/start-single/<int:pk>/', views.start_single_crawl, name='start_single_crawl'),
     path('crawl/status/<int:task_id>/', views.crawl_status, name='crawl_status'),
+    path('crawl/active-full/', views.get_active_full_crawl, name='get_active_full_crawl'),
+    path('crawl/stop-all/', views.stop_all_crawls, name='stop_all_crawls'),
 ]

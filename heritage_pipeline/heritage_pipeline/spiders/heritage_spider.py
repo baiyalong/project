@@ -1,25 +1,48 @@
 import scrapy
+from scrapy_redis.spiders import RedisSpider
 import re
 from heritage_pipeline.items import HeritageItem
 import json
 import html2text
 
-class HeritageSpider(scrapy.Spider):
+class HeritageSpider(RedisSpider):
     name = "heritage_spider"
     allowed_domains = ["whc.unesco.org"]
-    start_urls = ["https://whc.unesco.org/en/list/"]
+    # Redis key to read tasks from
+    redis_key = "heritage_spider:start_urls"
 
-    def start_requests(self):
-        # 支持单URL爬取模式
-        single_url = getattr(self, 'url', None)
-        if single_url:
-            # 单条爬取模式：直接访问详情页
-            self.log(f"Single URL mode: {single_url}")
-            yield scrapy.Request(single_url, callback=self.parse_detail_auto, meta={'playwright': True})
-        else:
-            # 全量爬取模式：从列表页开始
-            for url in self.start_urls:
-                yield scrapy.Request(url, meta={'playwright': True})
+    def make_request_from_data(self, data):
+        """
+        Custom method to parse JSON task from Redis
+        data: bytes
+        """
+        try:
+            task_data = json.loads(data)
+            url = task_data.get('url')
+            task_id = task_data.get('task_id')
+            task_type = task_data.get('task_type')
+            
+            if url:
+                self.logger.info(f"Received task {task_id} ({task_type}) for {url}")
+                # Pass task info in meta so pipelines can use it
+                meta = {
+                    'playwright': True,
+                    'task_id': task_id,
+                    'task_type': task_type
+                }
+                # Route to correct callback based on task type
+                callback = self.parse_detail_auto
+                if task_type == 'full':
+                    callback = self.parse
+                
+                # IMPORTANT: Set dont_filter=True to ensure user-triggered updates always run
+                return scrapy.Request(url, callback=callback, meta=meta, dont_filter=True)
+            else:
+                self.logger.error("Received task without URL")
+                return None
+        except Exception as e:
+            self.logger.error(f"Failed to process task data: {e}")
+            return None
 
     def parse(self, response):
         """
@@ -28,8 +51,15 @@ class HeritageSpider(scrapy.Spider):
         """
         # ... (rest is same logic but we need to ensure response is handled correctly)
         
+        # Count total items first
+        sites = response.xpath('//div[@class="list_site"]/ul/li')
+        total_count = len(sites)
+        task_id = response.meta.get('task_id')
+        self.logger.info(f"Found {total_count} sites in the list for task {task_id}")
+        self.update_total_items(total_count, task_id)
+
         # Iterate over all list items in the main list containers
-        for li in response.xpath('//div[@class="list_site"]/ul/li'):
+        for li in sites:
             url = li.xpath('a/@href').get()
             if not url:
                 continue
@@ -44,9 +74,35 @@ class HeritageSpider(scrapy.Spider):
             elif 'cultural' in classes or 'cultural_danger' in classes:
                 category = "Cultural"
             
-            # Use Playwright for detail pages too? Maybe not needed if detail pages are less protected,
-            # but safer to consistency.
-            yield response.follow(url, callback=self.parse_detail, cb_kwargs={'category': category}, meta={'playwright': True})
+            # Prepare meta, propagating existing meta (task_id, etc)
+            meta = response.meta.copy() if response.meta else {}
+            meta['playwright'] = True
+            
+            yield response.follow(url, callback=self.parse_detail, cb_kwargs={'category': category}, meta=meta)
+
+    def update_total_items(self, count, task_id):
+        """Update total_items in database for progress calculation"""
+        if not task_id:
+            return
+            
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from heritage_pipeline.models import CrawlTaskModel
+        
+        db_uri = self.settings.get('POSTGRES_URI', 'postgresql://heritage_user:heritage_password@localhost:5432/heritage')
+        try:
+            engine = create_engine(db_uri)
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            task = session.query(CrawlTaskModel).get(task_id)
+            if task:
+                task.total_items = count
+                session.commit()
+                self.logger.info(f"Updated total_items to {count} for task {task_id}")
+            session.close()
+            engine.dispose()
+        except Exception as e:
+            self.logger.error(f"Failed to update total_items: {e}")
 
     def parse_detail(self, response, category):
         item = HeritageItem()
@@ -109,7 +165,11 @@ class HeritageSpider(scrapy.Spider):
         item['category'] = category
         
         # 7. Metadata (URL)
-        item['metadata'] = {'url': response.url}
+        item['metadata'] = {
+            'url': response.url,
+            'task_id': response.meta.get('task_id'),
+            'task_type': response.meta.get('task_type')
+        }
 
         yield item
 

@@ -14,6 +14,8 @@ from .crawler_views import (
     start_full_crawl,
     start_single_crawl,
     crawl_status,
+    get_active_full_crawl,
+    stop_all_crawls,
 )
 
 __all__ = [
@@ -22,4 +24,6 @@ __all__ = [
     'start_full_crawl',
     'start_single_crawl',
     'crawl_status',
+    'get_active_full_crawl',
+    'stop_all_crawls',
 ]

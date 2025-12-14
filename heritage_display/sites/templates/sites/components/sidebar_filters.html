@@ -41,8 +41,13 @@
 
         {# Crawl Control #}
         <div class="crawl-control">
-            <button id="btn-start-full-crawl" class="btn-crawl-full">
-                <i class="bi bi-arrow-repeat"></i> Refresh All Data
+            {% csrf_token %}
+            <button id="btn-start-full-crawl" class="btn btn-primary w-100 mb-2">
+                <i class="bi bi-cloud-download"></i> Refresh All Data
+            </button>
+
+            <button id="btn-stop-crawl" class="btn btn-outline-danger w-100" style="display: none;">
+                <i class="bi bi-stop-circle"></i> Stop & Clear Tasks
             </button>
 
             {# Total Progress (initially hidden) #}

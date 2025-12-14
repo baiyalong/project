@@ -3,3 +3,4 @@ psycopg2-binary>=2.9
 python-dotenv>=1.0
 markdown>=3.5.0
 bleach>=6.0.0
+redis>=5.0.0
