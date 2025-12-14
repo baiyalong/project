@@ -29,7 +29,7 @@ services:
     image: docker.io/chromadb/chroma:latest
     container_name: heritage_chroma
     ports:
-      - "8000:8000"
+      - "8002:8000"
     volumes:
       - chroma_data:/chroma/chroma
     environment:
